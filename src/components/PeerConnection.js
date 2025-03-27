@@ -10,7 +10,7 @@ function PeerConnection({ peerId }) {
     const peer = new Peer(undefined, {
       host: "vc-remote-mouse-backend.onrender.com",
       port: 5000,
-      path: "/peerjs",
+      path: "/myapp",  // Use the correct path
       secure: true,
     });
 
@@ -20,12 +20,26 @@ function PeerConnection({ peerId }) {
       console.log("My Peer ID:", id);
     });
 
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        myVideoRef.current.srcObject = stream;
+
+        if (peerId) {
+          console.log(`Calling peer: ${peerId}`);
+          const call = peer.call(peerId, stream);
+          call.on("stream", (remoteStream) => {
+            remoteVideoRef.current.srcObject = remoteStream;
+          });
+        }
+
+      })
+      .catch((err) => console.error("Error accessing media devices:", err));
+
     peer.on("call", (call) => {
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then((stream) => {
           myVideoRef.current.srcObject = stream;
           call.answer(stream);
-
           call.on("stream", (remoteStream) => {
             remoteVideoRef.current.srcObject = remoteStream;
           });
@@ -34,7 +48,7 @@ function PeerConnection({ peerId }) {
     });
 
     return () => peer.destroy();
-  }, []);
+  }, [peerId]);
 
   return (
     <div className="flex flex-col items-center">
